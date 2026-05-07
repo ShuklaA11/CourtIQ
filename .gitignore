@@ -1,0 +1,24 @@
+# --- CourtIQ private docs (Arnav's hygiene rule: keep planning/scratch out of history) ---
+CLAUDE.md
+plan.md
+plan-*.md
+PLAN.md
+planning.md
+plans/
+
+# --- Python ---
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Data (raw pulls are large and reproducible; never commit them) ---
+data/
+
+# --- Env / secrets ---
+.env
+*.local
+
+# --- OS ---
+.DS_Store
