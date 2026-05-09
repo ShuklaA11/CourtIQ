@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import time
 from pathlib import Path
 
 from nba_api.stats.endpoints import (
@@ -33,6 +34,12 @@ SEASONS = ["2021-22", "2022-23", "2023-24", "2024-25", "2025-26"]
 SEASON_TYPES = ["Regular Season", "Playoffs"]
 
 DATA_ROOT = Path("data/raw")
+
+# When a hot streak of requests trips rate-limiting, some games exhaust their
+# per-call retries. Those aren't dead — the throttle is transient — so we sweep
+# the failures again after a cooldown. A few passes clears everything.
+FAILURE_RETRY_PASSES = 4
+COOLDOWN_SECONDS = 60
 
 # Each endpoint the pull fetches per game: (subdir, endpoint class).
 # V3 endpoints: the NBA API deprecated V2 play-by-play (now returns empty JSON,
@@ -107,15 +114,47 @@ def main() -> None:
     print(f"Total games to ensure cached: {len(games)}\n")
 
     newly_fetched = 0
+    failed: list[tuple[str, str]] = []  # (game_id, season) that raised
     for i, (game_id, season) in enumerate(games, 1):
-        n = fetch_game(game_id)
+        try:
+            n = fetch_game(game_id)
+        except Exception as exc:
+            # One unrecoverable game must not abort the run. Log and move on;
+            # already-written endpoint files for this game stay cached, so the
+            # retry pass only re-fetches what's still missing.
+            print(f"[{i}/{len(games)}] {season} {game_id}: FAILED "
+                  f"({type(exc).__name__}) — deferring")
+            failed.append((game_id, season))
+            continue
         newly_fetched += n
         status = "fetched" if n else "cached"
-        print(f"[{i}/{len(games)}] {season} {game_id}: {status} "
-              f"({n} endpoints)")
+        print(f"[{i}/{len(games)}] {season} {game_id}: {status} ({n} endpoints)")
+
+    # Retry passes over deferred failures, with a cooldown to let throttling clear.
+    for pass_num in range(1, FAILURE_RETRY_PASSES + 1):
+        if not failed:
+            break
+        print(f"\nRetry pass {pass_num}/{FAILURE_RETRY_PASSES}: "
+              f"{len(failed)} game(s) remaining; cooling down {COOLDOWN_SECONDS}s")
+        time.sleep(COOLDOWN_SECONDS)
+        still_failed: list[tuple[str, str]] = []
+        for game_id, season in failed:
+            try:
+                fetch_game(game_id)
+                print(f"  recovered {season} {game_id}")
+            except Exception as exc:
+                print(f"  still failing {season} {game_id} ({type(exc).__name__})")
+                still_failed.append((game_id, season))
+        failed = still_failed
 
     print(f"\nDone. Newly fetched {newly_fetched} endpoint files; "
           f"raw data under {DATA_ROOT}/")
+    if failed:
+        print(f"WARNING: {len(failed)} game(s) still failed after all passes:")
+        for game_id, season in failed:
+            print(f"  {season} {game_id}")
+    else:
+        print("All games cached successfully.")
 
 
 if __name__ == "__main__":

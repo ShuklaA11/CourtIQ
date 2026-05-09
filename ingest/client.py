@@ -24,7 +24,7 @@ RETRYABLE = (requests.exceptions.RequestException, json.JSONDecodeError)
 
 # --- Tuning knobs (see teaching note in README on why these values) ---
 MIN_GAP_SECONDS = 0.75      # floor on time between successive requests
-MAX_RETRIES = 5             # attempts before giving up on a single call
+MAX_RETRIES = 8             # attempts before giving up on a single call
 BASE_BACKOFF_SECONDS = 1.5  # first retry waits ~this long, then doubles
 BACKOFF_CAP_SECONDS = 60.0  # never wait longer than this between retries
 REQUEST_TIMEOUT = 60        # per-request timeout handed to nba_api
