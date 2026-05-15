@@ -1,0 +1,32 @@
+name: courtiq
+version: "0.1.0"
+config-version: 2
+
+profile: courtiq
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# Scope the whole warehouse to a single season by game_id prefix. The same
+# models fan out to more seasons by overriding this var, e.g.
+#   dbt run --vars '{game_id_patterns: ["00221%", "00421%", "00223%", "00423%"]}'
+# 002 = Regular Season, 004 = Playoffs; the following two digits are the season.
+vars:
+  # Root directory holding the raw JSON pulls, relative to the dbt working dir
+  # (run dbt from warehouse/, so ../data/raw points at the repo-level data dir).
+  # Override with an absolute path when the data lives elsewhere.
+  raw_root: "../data/raw"
+  # 2023-24 season: regular season + playoffs.
+  game_id_patterns: ["00223%", "00423%"]
+  # Minutes-reconciliation gate tolerances (see assert_minutes_residual_*).
+  minutes_tolerance_seconds: 60
+  minutes_residual_max_fraction: 0.01
+
+models:
+  courtiq:
+    staging:
+      +materialized: table
+    marts:
+      +materialized: table

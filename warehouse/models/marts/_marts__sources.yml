@@ -1,0 +1,35 @@
+version: 2
+
+sources:
+  # recon.build writes these two tables into the same DuckDB file between the
+  # staging run and the marts build. dbt treats them as sources (not models):
+  # they exist by the time `dbt build --select marts` runs.
+  - name: recon
+    schema: main
+    description: >
+      Possessions and on-floor lineup stints reconstructed from the event log by
+      recon.build (python -m recon.build).
+    tables:
+      - name: recon_possessions
+        description: One row per possession, with offense/defense five and points.
+        columns:
+          - name: game_id
+            tests: [not_null]
+          - name: offense_five
+            description: Exactly five person_ids on offense.
+          - name: defense_five
+            description: Exactly five person_ids on defense.
+      - name: recon_stints
+        description: One row per team per lineup-segment, with the five and its seconds.
+        columns:
+          - name: game_id
+            tests: [not_null]
+          - name: five
+            description: The five person_ids on the floor for this stint.
+      - name: recon_quarantine
+        description: >
+          Games recon.build could not reconstruct exactly-five and excluded from
+          the fact tables, one row per (game_id, reason).
+        columns:
+          - name: game_id
+            tests: [not_null]

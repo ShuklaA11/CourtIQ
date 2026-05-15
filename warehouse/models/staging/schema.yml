@@ -1,0 +1,116 @@
+version: 2
+
+models:
+  - name: dim_games
+    description: >
+      One row per in-scope game. season and season_type are decoded from the
+      game_id; game_date is NULL until a dated source is wired in.
+    data_tests:
+      # The 2023-24 scope must resolve to exactly the expected number of games.
+      # Driven by a var so the season fan-out overrides it alongside
+      # game_id_patterns (e.g. --vars '{expected_game_count: 2624}').
+      - expected_row_count:
+          arguments:
+            expected: "{{ var('expected_game_count', 1312) }}"
+    columns:
+      - name: game_id
+        description: NBA game id (e.g. 0022300001).
+        data_tests:
+          - not_null
+          - unique
+      - name: season
+        description: Season start year decoded from game_id chars 4-5 (2023 = 2023-24).
+        data_tests:
+          - not_null
+      - name: season_type
+        description: Regular or Playoffs, decoded from game_id chars 1-3 (002/004).
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["Regular", "Playoffs"]
+      - name: home_team_id
+        data_tests: [not_null]
+      - name: away_team_id
+        data_tests: [not_null]
+      - name: game_date
+        description: Tip-off date; NULL — not present in the raw pulls.
+
+  - name: stg_pbp_actions
+    description: One row per play-by-play action for in-scope games.
+    columns:
+      - name: game_id
+        description: NBA game id; must resolve against every other staging source.
+        data_tests:
+          - not_null
+          # Every in-scope pbp game must have box-score coverage. box_player is a
+          # >=1-row relationship; box_team_advanced is enforced in both directions
+          # (below) so pbp and advanced cover an identical set of game_ids.
+          - relationships:
+              arguments:
+                to: ref('stg_box_player')
+                field: game_id
+          - relationships:
+              arguments:
+                to: ref('stg_box_team_advanced')
+                field: game_id
+      - name: action_number
+        description: Sequence number of the action within the game.
+        data_tests: [not_null]
+      - name: period
+        description: Game period (quarter/OT) the action belongs to.
+        data_tests: [not_null]
+      - name: seconds_remaining
+        description: Game clock parsed from 'PT##M##.##S' to float seconds; NULL when the raw clock is empty.
+      - name: is_field_goal
+        description: Whether the action is a field-goal attempt.
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [true, false]
+      - name: score_home
+        description: Home score after the action; NULL before the first bucket.
+      - name: score_away
+        description: Away score after the action; NULL before the first bucket.
+
+  - name: stg_box_player
+    description: One row per (game_id, team_id, person_id) from the traditional box score.
+    columns:
+      - name: game_id
+        data_tests: [not_null]
+      - name: team_id
+        data_tests: [not_null]
+      - name: person_id
+        data_tests: [not_null]
+      - name: minutes_seconds
+        description: Minutes played parsed from 'MM:SS' to integer seconds; NULL for DNPs.
+      - name: is_home
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]
+
+  - name: stg_box_team_advanced
+    description: One row per (game_id, team_id) from the advanced box score.
+    columns:
+      - name: game_id
+        data_tests:
+          - not_null
+          # Reverse of the pbp -> advanced relationship: every advanced game_id
+          # must also appear in the play-by-play, so the two sources cover an
+          # identical set of games (no advanced-only or pbp-only game_ids).
+          - relationships:
+              arguments:
+                to: ref('stg_pbp_actions')
+                field: game_id
+      - name: team_id
+        data_tests: [not_null]
+      - name: possessions
+        description: Estimated possessions (float).
+      - name: is_home
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [true, false]

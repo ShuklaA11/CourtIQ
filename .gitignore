@@ -22,3 +22,14 @@ data/
 
 # --- OS ---
 .DS_Store
+
+# --- Warehouse (dbt-duckdb) build artifacts ---
+warehouse/target/
+warehouse/dbt_packages/
+warehouse/logs/
+*.duckdb
+*.duckdb.wal
+quarantine/
+
+# dbt local user state
+warehouse/.user.yml

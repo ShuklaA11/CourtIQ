@@ -1,0 +1,10 @@
+# Local dbt-duckdb profile. Kept inside the project so runs are self-contained:
+#   cd warehouse && dbt run --profiles-dir .
+# The DuckDB file is a reproducible build artifact and is gitignored.
+courtiq:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "courtiq.duckdb"
+      threads: 4
