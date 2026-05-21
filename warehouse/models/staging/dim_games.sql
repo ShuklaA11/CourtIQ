@@ -2,8 +2,9 @@
 -- header. season / season_type are decoded from the game_id itself:
 --   chars 1-3  -> '002' Regular Season, '004' Playoffs
 --   chars 4-5  -> two-digit season start year (e.g. '23' -> 2023-24)
--- game_date is not present in the raw pulls (meta.time is the scrape time, not
--- the tip-off date), so it is carried as NULL until a dated source is added.
+-- game_date comes from data/raw/game_dates.json, backfilled by `ingest.dates`
+-- (the per-game box/pbp pulls only carry scrape time, not tip-off date). That
+-- file must exist before this model runs; run.sh pulls it as step [0/4].
 
 with raw as (
     select
@@ -18,6 +19,13 @@ with raw as (
     )
 ),
 
+dates as (
+    select
+        game_id,
+        cast(game_date as date) as game_date
+    from read_json_auto('{{ var("raw_root") }}/game_dates.json')
+),
+
 decoded as (
     select
         game_id,
@@ -30,11 +38,13 @@ decoded as (
         home_team_id,
         away_team_id,
         cast(home_final_score as integer) as home_final_score,
-        cast(away_final_score as integer) as away_final_score,
-        cast(null as date) as game_date
+        cast(away_final_score as integer) as away_final_score
     from raw
 )
 
-select *
+select
+    decoded.*,
+    dates.game_date
 from decoded
-where {{ game_id_filter('game_id') }}
+left join dates using (game_id)
+where {{ game_id_filter('decoded.game_id') }}

@@ -4,7 +4,8 @@ models:
   - name: dim_games
     description: >
       One row per in-scope game. season and season_type are decoded from the
-      game_id; game_date is NULL until a dated source is wired in.
+      game_id; game_date is backfilled from data/raw/game_dates.json by
+      ingest.dates and must be non-null for every in-scope game.
     data_tests:
       # The 2023-24 scope must resolve to exactly the expected number of games.
       # Driven by a var so the season fan-out overrides it alongside
@@ -34,7 +35,8 @@ models:
       - name: away_team_id
         data_tests: [not_null]
       - name: game_date
-        description: Tip-off date; NULL — not present in the raw pulls.
+        description: Tip-off date, backfilled from game_dates.json by ingest.dates.
+        data_tests: [not_null]
 
   - name: stg_pbp_actions
     description: One row per play-by-play action for in-scope games.

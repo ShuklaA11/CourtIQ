@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # Sprint 1 reconstruction pipeline, end to end.
 #
+#   0. python -m ingest.dates     -> ensure data/raw/game_dates.json exists
 #   1. dbt run --select staging   -> materialize dim_games / stg_* into DuckDB
 #   2. python -m recon.build      -> reconstruct lineups + possessions, write recon_*
 #   3. dbt build --select marts   -> build fct_possessions + val_* and RUN THE GATES
+#
+# Step 0 is a no-op once cached (LeagueGameFinder dates, ~10 calls); dim_games
+# joins the result, so staging fails fast if it is missing.
 #
 # `dbt build` runs models and their singular tests together, so a failing gate
 # (a lineup not five, points that don't reconcile, systemic minutes drift) exits
@@ -26,13 +30,16 @@ if [[ -n "$PATTERNS" ]]; then
     VARS_ARG=(--vars "{game_id_patterns: $PATTERNS}")
 fi
 
-echo "==> [1/3] dbt run --select staging"
+echo "==> [0/4] python -m ingest.dates (ensure game_dates.json is cached)"
+"$VENV_PY" -m ingest.dates
+
+echo "==> [1/4] dbt run --select staging"
 (cd warehouse && "$DBT" run --profiles-dir . --select staging "${VARS_ARG[@]+"${VARS_ARG[@]}"}")
 
-echo "==> [2/3] python -m recon.build"
+echo "==> [2/4] python -m recon.build"
 "$VENV_PY" -m recon.build --db warehouse/courtiq.duckdb --raw-root data/raw
 
-echo "==> [3/3] dbt build --select marts (runs the validation gates)"
+echo "==> [3/4] dbt build --select marts (runs the validation gates)"
 (cd warehouse && "$DBT" build --profiles-dir . --select marts "${VARS_ARG[@]+"${VARS_ARG[@]}"}")
 
 echo "==> val_summary:"
