@@ -90,6 +90,8 @@ class Possession:
     end_seconds: float
     offense_five: tuple[int, ...]
     defense_five: tuple[int, ...]
+    home_score_before: int | None = None
+    away_score_before: int | None = None
 
 
 # Events that may appear between a made basket and its and-1 free throw, or that
@@ -127,7 +129,7 @@ def recon_possessions(game_id: str, actions: list[dict]) -> list[Possession]:
             poss = None
 
     def open_(offense: int | None, defense: int | None, seconds: float,
-              lineups: dict | None) -> None:
+              lineups: dict | None, action: dict | None = None) -> None:
         nonlocal poss, poss_num
         poss_num += 1
         off5 = tuple(lineups.get(offense, ())) if lineups else ()
@@ -142,9 +144,17 @@ def recon_possessions(game_id: str, actions: list[dict]) -> list[Possession]:
             "end": seconds,
             "off5": off5,
             "def5": def5,
+            "home_score_before": (
+                action.get("score_home_before") if action is not None else None
+            ),
+            "away_score_before": (
+                action.get("score_away_before") if action is not None else None
+            ),
         }
 
-    def ensure_offense(team: int | None, seconds: float, lineups: dict | None) -> None:
+    def ensure_offense(
+        team: int | None, seconds: float, lineups: dict | None, action: dict
+    ) -> None:
         """Guarantee an open possession owned by `team`.
 
         Opening the first possession, and defensively re-syncing if the log hands
@@ -155,7 +165,7 @@ def recon_possessions(game_id: str, actions: list[dict]) -> list[Possession]:
         if poss is None or poss["offense"] != team:
             if poss is not None:
                 close(seconds)
-            open_(team, _other_team(lineups, team), seconds, lineups)
+            open_(team, _other_team(lineups, team), seconds, lineups, action)
 
     for i, action in enumerate(actions):
         period = action["period"]
@@ -170,16 +180,16 @@ def recon_possessions(game_id: str, actions: list[dict]) -> list[Possession]:
             poss_num = 0
 
         if event == "made_shot":
-            ensure_offense(team, seconds, lineups)
+            ensure_offense(team, seconds, lineups, action)
             poss["points"] += action.get("points", 0)
             if not _is_and1(actions, i):
                 close(seconds)
 
         elif event == "missed_shot":
-            ensure_offense(team, seconds, lineups)  # stays open, awaits rebound
+            ensure_offense(team, seconds, lineups, action)  # stays open, awaits rebound
 
         elif event == "turnover":
-            ensure_offense(team, seconds, lineups)
+            ensure_offense(team, seconds, lineups, action)
             close(seconds)
 
         elif event == "free_throw":
@@ -198,13 +208,13 @@ def recon_possessions(game_id: str, actions: list[dict]) -> list[Possession]:
                         pending_tech[team] += points
             elif kind == "flagrant":
                 # Fouled team shoots AND keeps the ball: score it, never close.
-                ensure_offense(team, seconds, lineups)
+                ensure_offense(team, seconds, lineups, action)
                 if made:
                     poss["points"] += points
             else:
                 # Regular trip: the made FINAL attempt flips the possession; a
                 # missed final FT does not — the ensuing rebound decides.
-                ensure_offense(team, seconds, lineups)
+                ensure_offense(team, seconds, lineups, action)
                 if made:
                     poss["points"] += points
                 if made and action.get("ft_index") == action.get("ft_total"):
@@ -212,12 +222,12 @@ def recon_possessions(game_id: str, actions: list[dict]) -> list[Possession]:
 
         elif event == "rebound":
             if poss is None:
-                open_(team, _other_team(lineups, team), seconds, lineups)
+                open_(team, _other_team(lineups, team), seconds, lineups, action)
             elif team == poss["offense"]:
                 poss["end"] = seconds  # offensive rebound: same team keeps the ball
             else:
                 close(seconds)  # defensive rebound ends it; the grab starts the flip
-                open_(team, _other_team(lineups, team), seconds, lineups)
+                open_(team, _other_team(lineups, team), seconds, lineups, action)
 
         elif event == "period_end":
             close(seconds)
@@ -248,6 +258,8 @@ def recon_possessions(game_id: str, actions: list[dict]) -> list[Possession]:
             end_seconds=r["end"],
             offense_five=r["off5"],
             defense_five=r["def5"],
+            home_score_before=r["home_score_before"],
+            away_score_before=r["away_score_before"],
         )
         for r in raw_rows
     ]
@@ -310,6 +322,8 @@ def _flush_pending(raw_rows: list[dict], team: int, pts: int,
         "end": last_seconds,
         "off5": tuple(last_lineups.get(team, ())) if last_lineups else (),
         "def5": tuple(last_lineups.get(defense, ())) if last_lineups else (),
+        "home_score_before": None,
+        "away_score_before": None,
     })
 
 

@@ -13,6 +13,10 @@ select
     offense_five,          -- five person_ids on offense
     defense_five,          -- five person_ids on defense
     points,                -- points scored by the offense on this possession
-    duration_seconds
+    start_seconds,         -- elapsed seconds within the period at possession start
+    end_seconds,           -- elapsed seconds within the period at possession end
+    duration_seconds,
+    home_score_before,
+    away_score_before
 from {{ source('recon', 'recon_possessions') }}
 order by game_id, period, possession_number

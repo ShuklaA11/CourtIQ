@@ -38,6 +38,26 @@ def _action(event, team=None, period=1, seconds=0.0, points=0, **extra):
     return row
 
 
+def test_possession_captures_score_before_its_opening_action():
+    actions = [
+        _action(
+            "made_shot", team=HOME, seconds=10.0, points=2,
+            score_home_before=0, score_away_before=0,
+        ),
+        _action(
+            "made_shot", team=AWAY, seconds=20.0, points=3,
+            score_home_before=2, score_away_before=0,
+        ),
+    ]
+
+    possessions = recon_possessions(GAME_ID, actions)
+
+    assert possessions[0].home_score_before == 0
+    assert possessions[0].away_score_before == 0
+    assert possessions[1].home_score_before == 2
+    assert possessions[1].away_score_before == 0
+
+
 # --------------------------------------------------------------------------- #
 # And-1: made FG + shooting foul + one FT — a single possession, not two.
 # --------------------------------------------------------------------------- #

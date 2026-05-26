@@ -129,6 +129,7 @@ def reconstruct_game(raw_root: Path, game_id: str) -> dict:
             list(p.offense_five), list(p.defense_five),
             p.points, p.start_seconds, p.end_seconds,
             p.end_seconds - p.start_seconds,
+            p.home_score_before, p.away_score_before,
         )
         for p in possessions
         if p.offense_team_id is not None
@@ -142,7 +143,8 @@ create table recon_possessions (
     game_id varchar, season integer, period integer, possession_number integer,
     offense_team_id bigint, defense_team_id bigint,
     offense_five integer[], defense_five integer[],
-    points integer, start_seconds double, end_seconds double, duration_seconds double
+    points integer, start_seconds double, end_seconds double, duration_seconds double,
+    home_score_before integer, away_score_before integer
 );
 drop table if exists recon_stints;
 create table recon_stints (
@@ -179,7 +181,7 @@ def build(db_path: str = DEFAULT_DB, raw_root: str = DEFAULT_RAW_ROOT) -> dict:
         if poss_rows:
             con.executemany(
                 "insert into recon_possessions values "
-                "(?,?,?,?,?,?,?,?,?,?,?,?)", poss_rows)
+                "(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", poss_rows)
         if stint_rows:
             con.executemany(
                 "insert into recon_stints values (?,?,?,?,?,?,?,?,?,?,?)", stint_rows)

@@ -19,6 +19,10 @@ sources:
             description: Exactly five person_ids on offense.
           - name: defense_five
             description: Exactly five person_ids on defense.
+          - name: home_score_before
+            description: Feed scoreboard for the home team immediately before the opening action.
+          - name: away_score_before
+            description: Feed scoreboard for the away team immediately before the opening action.
       - name: recon_stints
         description: One row per team per lineup-segment, with the five and its seconds.
         columns:

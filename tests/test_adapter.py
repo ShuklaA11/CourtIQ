@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from recon.adapter import AdapterError, parse_lineup_actions, parse_rosters
+from recon.adapter import AdapterError, parse_lineup_actions, parse_rosters, to_action_log
 from recon.lineups import SUBSTITUTION
 
 
@@ -110,6 +110,26 @@ def _sub(action_number, person_id, desc, period=1, clock="PT06M00.00S"):
     return {"actionNumber": action_number, "period": period, "clock": clock,
             "teamId": 1, "personId": person_id, "actionType": "Substitution",
             "subType": "", "description": desc}
+
+
+def test_action_log_carries_score_before_action_not_post_action_score():
+    pbp = _pbp([
+        {
+            "actionNumber": 1, "period": 1, "clock": "PT11M00.00S",
+            "teamId": 1, "actionType": "Made Shot", "shotValue": 2,
+            "scoreHome": "2", "scoreAway": "0", "description": "make",
+        },
+        {
+            "actionNumber": 2, "period": 1, "clock": "PT10M30.00S",
+            "teamId": 2, "actionType": "Made Shot", "shotValue": 3,
+            "scoreHome": "2", "scoreAway": "3", "description": "make",
+        },
+    ])
+
+    rows = to_action_log(pbp)
+
+    assert (rows[0]["score_home_before"], rows[0]["score_away_before"]) == (0, 0)
+    assert (rows[1]["score_home_before"], rows[1]["score_away_before"]) == (2, 0)
 
 
 def test_substitution_out_is_personid_in_from_description():

@@ -181,10 +181,25 @@ def to_action_log(
     default_lineups = {team: () for team in team_ids}
 
     log: list[dict] = []
+    # Running scoreboard *before* each action. The feed's scoreHome/scoreAway
+    # values are post-action, so retaining the previous values is the only
+    # leakage-safe way to timestamp a possession that opens on a scoring action.
+    last_home_score = 0
+    last_away_score = 0
     # The subType of the most recent foul, used to spot free throws that return
     # possession to the shooter (away-from-play / take fouls).
     last_foul_subtype: str | None = None
     for index, action in enumerate(pbp["game"]["actions"]):
+        score_before = {
+            "score_home_before": last_home_score,
+            "score_away_before": last_away_score,
+        }
+        raw_home = action.get("scoreHome")
+        raw_away = action.get("scoreAway")
+        if raw_home not in (None, ""):
+            last_home_score = int(raw_home)
+        if raw_away not in (None, ""):
+            last_away_score = int(raw_away)
         action_type = action.get("actionType", "")
         period = int(action["period"])
         seconds = parse_clock(action.get("clock", ""), period)
@@ -198,14 +213,18 @@ def to_action_log(
 
         if action_type == "period":
             if action.get("subType") == "end":
-                log.append(_row("period_end", None, period, seconds, 0, lineups))
+                log.append(_row(
+                    "period_end", None, period, seconds, 0, lineups, **score_before
+                ))
             continue  # "start" markers carry no segmentation meaning
 
         event = _EVENT_MAP.get(action_type, _NEUTRAL_EVENT)
 
         if event == "made_shot":
             points = int(action.get("shotValue") or 2)
-            log.append(_row(event, team, period, seconds, points, lineups))
+            log.append(_row(
+                event, team, period, seconds, points, lineups, **score_before
+            ))
         elif event == "free_throw":
             index_, total, kind = _parse_free_throw(action.get("subType", ""))
             # A one-shot award from an away-from-play or take foul keeps the ball
@@ -216,10 +235,13 @@ def to_action_log(
             log.append(_row(
                 event, team, period, seconds, 1 if made else 0, lineups,
                 ft_index=index_, ft_total=total, ft_kind=kind, made=made,
+                **score_before,
             ))
         else:
             # missed_shot, rebound, turnover, and every neutral event: no points.
-            log.append(_row(event, team, period, seconds, 0, lineups))
+            log.append(_row(
+                event, team, period, seconds, 0, lineups, **score_before
+            ))
 
     return log
 
