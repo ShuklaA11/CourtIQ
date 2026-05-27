@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: fct_game_states
+    description: >
+      Leakage-safe state immediately before each possession begins. The 2021
+      season is retained as audit_only/cold_start; model partitions begin in
+      2022 and use only prior-season RAPM.
+    columns:
+      - name: game_id
+        data_tests: [not_null]
+      - name: season
+        data_tests: [not_null]
+      - name: game_date
+        data_tests: [not_null]
+      - name: period
+        data_tests: [not_null]
+      - name: possession_number
+        data_tests: [not_null]
+      - name: game_clock_seconds
+        data_tests: [not_null]
+      - name: elapsed_game_seconds
+        data_tests: [not_null]
+      - name: regulation_seconds_remaining
+        data_tests: [not_null]
+      - name: home_team_id
+        data_tests: [not_null]
+      - name: away_team_id
+        data_tests: [not_null]
+      - name: possession_team_id
+        data_tests: [not_null]
+      - name: home_has_possession
+        data_tests: [not_null]
+      - name: home_score
+        data_tests: [not_null]
+      - name: away_score
+        data_tests: [not_null]
+      - name: home_score_differential
+        data_tests: [not_null]
+      - name: home_five
+        data_tests: [not_null]
+      - name: away_five
+        data_tests: [not_null]
+      - name: home_win
+        data_tests: [not_null]
+      - name: rapm_coverage_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["cold_start", "full", "partial", "replacement_only"]
+      - name: split
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["audit_only", "train", "validation", "test"]

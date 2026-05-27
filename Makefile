@@ -6,7 +6,7 @@
 
 ALL_SEASONS := ["00221%","00421%","00222%","00422%","00223%","00423%","00224%","00424%","00225%","00425%"]
 
-.PHONY: pipeline all-seasons clean
+.PHONY: pipeline all-seasons game-states clean
 
 ## Full pipeline on the default scope (2023-24).
 pipeline:
@@ -15,6 +15,11 @@ pipeline:
 ## Full pipeline over every ingested season.
 all-seasons:
 	./run.sh '$(ALL_SEASONS)'
+
+## Build, gate, export, and audit the Sprint 3 possession-boundary feature mart.
+## Requires the all-season warehouse and data/rapm/bayes_ratings.parquet.
+game-states:
+	./game_states.sh
 
 ## Remove the DuckDB warehouse and dbt build artifacts.
 clean:

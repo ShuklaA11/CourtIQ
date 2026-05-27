@@ -40,6 +40,8 @@ var when fanning out to more seasons.
 |---|---|---|
 | `raw_root` | `../data/raw` | Root of the raw JSON pulls (run from `warehouse/`). Pass an absolute path if the data lives elsewhere. |
 | `game_id_patterns` | `["00223%", "00423%"]` | `game_id` LIKE patterns that scope every model. `002` = Regular Season, `004` = Playoffs; the next two digits are the season. |
+| `rapm_ratings_path` | `../data/rapm/bayes_ratings.parquet` | Exact-posterior player-season ratings used by the opt-in game-state mart. |
+| `enable_winprob` | `false` | Enables `fct_game_states` and its hard gate. `./game_states.sh` sets this true. |
 
 Fan out to more seasons without touching SQL — just widen the var:
 
@@ -52,7 +54,9 @@ dbt build --profiles-dir . \
 
 | Model | Grain |
 |---|---|
-| `dim_games` | one row per `game_id` (season, season_type, home/away team ids; `game_date` NULL — not in raw pulls) |
+| `dim_games` | one row per `game_id` (season, season_type, home/away team ids, backfilled game date) |
 | `stg_pbp_actions` | one row per play-by-play action (`clock` parsed to `seconds_remaining`; string scores parsed, `''` → NULL) |
 | `stg_box_player` | one row per `(game_id, team_id, person_id)` (`minutes` `MM:SS` → `minutes_seconds`) |
 | `stg_box_team_advanced` | one row per `(game_id, team_id)` (possessions, pace, offensive_rating) |
+| `fct_possessions` | one row per reconstructed possession, including start/end time and pre-action feed score |
+| `fct_game_states` | one row per possession boundary; opt-in leakage-safe win-probability features with prior-season RAPM |

@@ -7,9 +7,10 @@ held-out seasons and betting-market lines.
 
 ## Status
 
-**Sprint 2 — RAPM (complete).** Ridge baseline and exact Gaussian-posterior
-Offense/Defense RAPM, fit on 1,273,794 reconstructed possessions (5 seasons,
-2,601 player-seasons) and validated out-of-sample. Win probability is next.
+**Sprint 3, Phase 1 — game-state features (complete).** The validated RAPM now
+feeds a leakage-safe possession-boundary mart (1,273,794 states / 6,430 games)
+with forward-chaining train/validation/test seasons. Win-probability model
+training is the next phase.
 
 ## Results
 
@@ -91,6 +92,29 @@ quarantined (OT lineups the play-by-play can't reconstruct), dropped whole and
 roughly evenly across teams — a small, near-unbiased gap.
 
 _Regenerate: `python -m rapm.design && python -m rapm.ridge && python -m rapm.bayes && python -m rapm.results`._
+
+### Win-probability feature dataset
+
+`fct_game_states` contains the score, clock, possession, home/away fives, and
+prior-season RAPM lineup strength immediately before each possession. Season
+2021 is retained as `audit_only` cold start; 2022–23 are train, 2024 validation,
+and 2025 the untouched test partition. Missing prior-season player ratings use
+the zero-centered replacement prior and carry an explicit coverage status.
+
+The model score is the monotone cumulative total from completed possessions,
+which excludes the current possession and reconciles exactly to the official
+box score. Raw feed scores are retained only as diagnostics: 5,434 states
+(0.43%) disagree because of technical-point timing or feed anomalies, including
+25 downward scoreboard corrections.
+
+Build, gate, export, and audit:
+
+```bash
+./game_states.sh
+```
+
+Generated artifacts are under `data/winprob/`: `fct_game_states.parquet`,
+`manifest.json`, and `audit.json`.
 
 ## Pipeline
 
