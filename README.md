@@ -7,10 +7,11 @@ held-out seasons and betting-market lines.
 
 ## Status
 
-**Sprint 3, Phase 1 — game-state features (complete).** The validated RAPM now
+**Sprint 3, Phase 2 — win-probability baseline (complete).** The validated RAPM
 feeds a leakage-safe possession-boundary mart (1,273,794 states / 6,430 games)
-with forward-chaining train/validation/test seasons. Win-probability model
-training is the next phase.
+with forward-chaining train/validation/test seasons, and an intercept-free L2
+logistic win-probability model now fits on 2022–24 and is scored out-of-sample
+on the untouched 2025 test season.
 
 ## Results
 
@@ -115,6 +116,41 @@ Build, gate, export, and audit:
 
 Generated artifacts are under `data/winprob/`: `fct_game_states.parquet`,
 `manifest.json`, and `audit.json`.
+
+### Win-probability model (Phase 2)
+
+An intercept-free L2 logistic model fit on 2022–24 (768,094 possession states)
+and scored on the **untouched 2025 test season** (251,140 states / 1,258 games;
+home-win base rate 55.4%). Every number below is out-of-sample — the test season
+never enters training or λ-selection — and reproducible with `./winprob.sh`.
+
+**Held-out 2025 headline.** Brier **0.16372**, log loss **0.48426**. Calibration,
+from regressing the realized outcome on the model's logit, is intercept **−0.073**
+and slope **1.031** (a perfectly calibrated model is 0 / 1): the probabilities are
+honest, not merely discriminating.
+
+**Versus leakage-safe baselines** (same test split; lower is better):
+
+| Forecast | Brier | Log loss |
+|---|---:|---:|
+| Base rate (constant home-win probability) | 0.24706 | 0.68725 |
+| Score + time | 0.16388 | 0.48459 |
+| Score + time + possession | 0.16367 | 0.48403 |
+| **Logistic model** | **0.16372** | **0.48426** |
+
+**Honest caveats.** (1) The model passes the Phase-2 gate — it beats the
+score-and-time baseline on both Brier and log loss — but the edge is tiny (≈0.1%
+of Brier), and a baseline that merely adds *who has the ball* (score + time +
+possession) actually matches or slightly beats the full model on both metrics. At
+the possession grain almost all of the signal is score, time, and possession; the
+remaining features earn their keep only at the margin, so this is an honest
+baseline, not a headline win. (2) Calibration holds in aggregate and within every
+period, time-remaining, and margin bucket (no bucket of ≥250 states is
+miscalibrated by more than 0.10), but the model is a linear-logit baseline with no
+interactions or non-linearity beyond the fixed time knots. (3) 2021 is held out as
+an `audit_only` cold-start season and is never scored.
+
+_Regenerate: `./winprob.sh` (fits `winprob.model`, then scores and gates via `winprob.evaluate`)._
 
 ## Pipeline
 

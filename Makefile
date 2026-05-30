@@ -6,7 +6,7 @@
 
 ALL_SEASONS := ["00221%","00421%","00222%","00422%","00223%","00423%","00224%","00424%","00225%","00425%"]
 
-.PHONY: pipeline all-seasons game-states clean
+.PHONY: pipeline all-seasons game-states winprob clean
 
 ## Full pipeline on the default scope (2023-24).
 pipeline:
@@ -20,6 +20,10 @@ all-seasons:
 ## Requires the all-season warehouse and data/rapm/bayes_ratings.parquet.
 game-states:
 	./game_states.sh
+
+## Fit and evaluate the Phase 2 logistic win-probability baseline.
+winprob:
+	./winprob.sh
 
 ## Remove the DuckDB warehouse and dbt build artifacts.
 clean:
