@@ -6,7 +6,7 @@
 
 ALL_SEASONS := ["00221%","00421%","00222%","00422%","00223%","00423%","00224%","00424%","00225%","00425%"]
 
-.PHONY: pipeline all-seasons game-states winprob clean
+.PHONY: pipeline all-seasons game-states winprob ablation clean
 
 ## Full pipeline on the default scope (2023-24).
 pipeline:
@@ -24,6 +24,10 @@ game-states:
 ## Fit and evaluate the Phase 2 logistic win-probability baseline.
 winprob:
 	./winprob.sh
+
+## Run the Phase 3 leakage-safe RAPM lineup ablation (A..E) on the 2025 holdout.
+ablation:
+	./ablation.sh
 
 ## Remove the DuckDB warehouse and dbt build artifacts.
 clean:

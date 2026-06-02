@@ -7,11 +7,13 @@ held-out seasons and betting-market lines.
 
 ## Status
 
-**Sprint 3, Phase 2 — win-probability baseline (complete).** The validated RAPM
+**Sprint 3, Phase 3 — RAPM lineup ablation (complete).** The validated RAPM
 feeds a leakage-safe possession-boundary mart (1,273,794 states / 6,430 games)
 with forward-chaining train/validation/test seasons, and an intercept-free L2
-logistic win-probability model now fits on 2022–24 and is scored out-of-sample
-on the untouched 2025 test season.
+logistic win-probability model fits on 2022–24 and is scored on the untouched
+2025 test season. A nested A→E ablation then measures whether prior-season lineup
+RAPM adds held-out signal: prior-season *team* strength does (Brier −0.005 out of
+sample), but the *specific on-court five* adds nothing beyond it.
 
 ## Results
 
@@ -151,6 +153,48 @@ interactions or non-linearity beyond the fixed time knots. (3) 2021 is held out 
 an `audit_only` cold-start season and is never scored.
 
 _Regenerate: `./winprob.sh` (fits `winprob.model`, then scores and gates via `winprob.evaluate`)._
+
+### RAPM lineup ablation (Phase 3)
+
+Does knowing *which players are on the floor* — via prior-season RAPM — improve
+held-out win probability once you already know the score, clock, and possession?
+A nested ladder answers it on the **untouched 2025 test season** (251,140 states /
+1,258 games), each tier adding one block of features and fit leakage-safe with its
+own λ-selection. Uncertainty is a paired **game-clustered** bootstrap (resample
+games, never rows), so each difference below is the honest test of a tier over the
+one beneath it. Reproduce with `./ablation.sh`.
+
+| Tier | Features | Brier | Log loss | vs. tier below (95% CI) |
+|---|---|---:|---:|---|
+| A | score + time | 0.16388 | 0.48459 | — |
+| B | + possession | 0.16367 | 0.48403 | −0.00020 [−0.00023, −0.00017] |
+| **C** | **+ pregame team strength** | **0.15865** | **0.47167** | **−0.00500 [−0.00972, −0.00013]** |
+| D | + current-lineup net RAPM | 0.15861 | 0.47183 | −0.00004 [−0.00064, +0.00055] |
+| E | + RAPM coverage counts | 0.15619 | 0.46574 | −0.00242 [−0.00360, −0.00124] |
+
+**The finding.** Prior-season **team strength adds real out-of-sample signal** —
+Brier −0.00500 with a confidence interval that clears zero, roughly 25× the
+≈0.0002 a possession term buys. But **current-lineup RAPM adds essentially nothing
+beyond it**: the D−C interval straddles zero. Team strength is the confound, and
+once it is controlled the specific five on the floor carries no additional
+held-out win-probability signal — lineup-level RAPM's apparent value is team
+quality in disguise. This is a null, and it *is* the result: the gate that asks
+RAPM to beat team strength fails, correctly, and the run still exits clean because
+every *structural* gate (predictions in (0, 1), late-game calibration not
+degraded, every rating strictly prior to its game) holds.
+
+**Honest caveats.** (1) The coverage-count tier (E) does lower Brier with a CI
+clearing zero, but rated-player counts are a roster-experience proxy — established
+players are the ones with prior-season ratings — not lineup skill, so it is
+reported, not gated, and should not be read as lineup RAPM helping. (2) The
+rolling-fold reproduction check passes on the *sign* of D−C in both a 2024-test and
+a 2025-test fold, but both point estimates are within bootstrap noise, so it
+corroborates the null rather than any improvement. (3) Team strength is a
+per-(team, season) pooled mean of on-court net RAPM; because season is part of the
+key, a test-season team's strength is a function of test rows only and never leaks
+into the fitted train/validation coefficients.
+
+_Regenerate: `./ablation.sh` (fits A→E, then scores and gates via `winprob.ablation`)._
 
 ## Pipeline
 
