@@ -7,13 +7,17 @@ held-out seasons and betting-market lines.
 
 ## Status
 
-**Sprint 3, Phase 3 — RAPM lineup ablation (complete).** The validated RAPM
-feeds a leakage-safe possession-boundary mart (1,273,794 states / 6,430 games)
-with forward-chaining train/validation/test seasons, and an intercept-free L2
-logistic win-probability model fits on 2022–24 and is scored on the untouched
-2025 test season. A nested A→E ablation then measures whether prior-season lineup
-RAPM adds held-out signal: prior-season *team* strength does (Brier −0.005 out of
-sample), but the *specific on-court five* adds nothing beyond it.
+**Sprint 3, Phase 4 — gradient-boosted challenger (complete).** The validated
+RAPM feeds a leakage-safe possession-boundary mart (1,273,794 states / 6,430
+games) with forward-chaining train/validation/test seasons, and an intercept-free
+L2 logistic win-probability model fits on 2022–24 and is scored on the untouched
+2025 test season. A nested A→E ablation showed prior-season *team* strength adds
+held-out signal (Brier −0.005) while the *specific on-court five* adds nothing
+beyond it. Phase 4 then races a hand-rolled gradient-boosted challenger against
+the additive logistic on the *identical* features: given free rein over
+interactions, it does **not** beat the logistic out of sample (Brier 0.15713 vs
+0.15619, difference CI straddles zero). The signal is confirmed ~linear — the
+logistic is retained, and that null is the result.
 
 ## Results
 
@@ -195,6 +199,64 @@ key, a test-season team's strength is a function of test rows only and never lea
 into the fitted train/validation coefficients.
 
 _Regenerate: `./ablation.sh` (fits A→E, then scores and gates via `winprob.ablation`)._
+
+### Gradient-boosted challenger (Phase 4)
+
+The logistic is **additive** in its features — it hand-builds a little
+nonlinearity (`margin/√time`, time knots) but structurally cannot represent an
+interaction like `margin × team_strength` (a *strong* team down six behaves unlike
+a *weak* one in the same state). Phase 4 asks whether a model that *can* learn
+those interactions beats it out of sample. The challenger is a hand-rolled
+histogram **Newton gradient-boosted** tree ensemble (`winprob.gbm`, pure numpy, no
+third-party ML dependency) trained on the **identical tier-E features** minus the
+constant intercept — so the *only* difference from its opponent is
+nonlinearity/interactions, not the feature set. Both are fit leakage-safe
+(hyperparameters selected on 2024, refit on 2022–24) and scored on the **untouched
+2025 test season**. Reproduce with `./challenger.sh`.
+
+**Held-out 2025 (lower is better):**
+
+| Model | Brier | Log loss | Calibration (intercept / slope) |
+|---|---:|---:|---|
+| **Tier-E logistic** | **0.15619** | **0.46574** | +0.060 / 0.986 |
+| Gradient-boosted challenger | 0.15713 | 0.46743 | +0.079 / 1.094 |
+| GBM − logistic (paired, game-clustered 95% CI) | +0.00096 [−0.00046, +0.00244] | +0.00169 [−0.00257, +0.00588] | — |
+
+**The finding.** The nonlinear challenger does **not** beat the additive logistic
+— it is marginally *worse* on both Brier and log loss, and the paired difference
+interval straddles zero on both. With no real interaction signal to exploit, the
+tree ensemble's flexibility buys only variance, not accuracy. The verdict is
+**retain the logistic**; all structural gates (predictions in (0, 1), holdout
+untouched, every rating strictly prior) pass, so the run exits clean on an honest
+null. This is the intended, publishable Phase-4 result: it converts Phase 3's
+"the signal looks ~linear" from an assumption into an out-of-sample measurement.
+
+**The model chose against interactions.** Hyperparameter selection (validation
+game-clustered log-loss) is itself corroborating evidence — every deeper (more
+interaction-capable) configuration scored *worse* on validation than its shallow
+twin, so the search settled on the shallowest, most additive model on offer:
+
+| learning rate | max depth | trees | validation log loss |
+|---:|---:|---:|---:|
+| **0.05** | **2** | **152** | **0.473196** |
+| 0.05 | 3 | 85 | 0.476597 |
+| 0.10 | 2 | 77 | 0.473705 |
+| 0.10 | 3 | 38 | 0.477924 |
+
+**Honest caveats.** (1) The GBM is well-calibrated (slope 1.094 is mildly
+over-confident but inside tolerance, and no ≥250-state phase bucket is
+miscalibrated by more than 0.10), so it loses on *sharpness*, not calibration —
+there is simply no additional held-out signal for it to sharpen on. (2) The
+challenger receives the same engineered `margin/√time` and time-knot columns the
+logistic needs, so any gain would have had to come from interactions *beyond* what
+those hand-built terms already capture; none materialized. (3) The comparison is a
+single held-out season (2025); the game-clustered bootstrap is the game-level
+uncertainty test, and a season-level rolling check would require refitting the GBM
+on a different split (out of Phase-4 scope — Phase 3 established that machinery for
+the RAPM question).
+
+_Regenerate: `./challenger.sh` (selects + fits `winprob.gbm`, then races the
+tier-E logistic and gates via `winprob.challenger`)._
 
 ## Pipeline
 
