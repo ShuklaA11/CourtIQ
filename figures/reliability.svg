@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360.00 360.00" width="360.00" height="360.00" role="img" aria-label="Win-probability reliability (held-out 2025)">
+  <rect x="0.00" y="0.00" width="360.00" height="360.00" fill="#ffffff" />
+  <rect x="44.00" y="44.00" width="272.00" height="272.00" fill="none" />
+  <line x1="44.00" y1="316.00" x2="44.00" y2="320.00" stroke="#8a8a8a" stroke-width="1.0" />
+  <text x="44.00" y="334.00" fill="#8a8a8a" font-size="12" text-anchor="middle" font-family="sans-serif">0.0</text>
+  <line x1="40.00" y1="316.00" x2="44.00" y2="316.00" stroke="#8a8a8a" stroke-width="1.0" />
+  <text x="36.00" y="320.00" fill="#8a8a8a" font-size="12" text-anchor="end" font-family="sans-serif">0.0</text>
+  <line x1="180.00" y1="316.00" x2="180.00" y2="320.00" stroke="#8a8a8a" stroke-width="1.0" />
+  <text x="180.00" y="334.00" fill="#8a8a8a" font-size="12" text-anchor="middle" font-family="sans-serif">0.5</text>
+  <line x1="40.00" y1="180.00" x2="44.00" y2="180.00" stroke="#8a8a8a" stroke-width="1.0" />
+  <text x="36.00" y="184.00" fill="#8a8a8a" font-size="12" text-anchor="end" font-family="sans-serif">0.5</text>
+  <line x1="316.00" y1="316.00" x2="316.00" y2="320.00" stroke="#8a8a8a" stroke-width="1.0" />
+  <text x="316.00" y="334.00" fill="#8a8a8a" font-size="12" text-anchor="middle" font-family="sans-serif">1.0</text>
+  <line x1="40.00" y1="44.00" x2="44.00" y2="44.00" stroke="#8a8a8a" stroke-width="1.0" />
+  <text x="36.00" y="48.00" fill="#8a8a8a" font-size="12" text-anchor="end" font-family="sans-serif">1.0</text>
+  <line x1="44.00" y1="316.00" x2="316.00" y2="44.00" stroke="#c0392b" stroke-width="1.0" stroke-dasharray="4 3" class="diagonal" />
+  <polyline points="53.61,310.78 84.63,283.71 112.51,251.24 139.65,217.82 166.97,193.48 193.86,168.92 220.21,145.13 247.76,119.66 275.19,89.99 306.23,50.91" fill="none" stroke="#1f77b4" stroke-width="1.5" class="reliability-curve" />
+  <circle cx="53.61" cy="310.78" r="6.88" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="84.63" cy="283.71" r="6.02" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="112.51" cy="251.24" r="6.25" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="139.65" cy="217.82" r="6.62" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="166.97" cy="193.48" r="7.05" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="193.86" cy="168.92" r="7.71" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="220.21" cy="145.13" r="7.92" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="247.76" cy="119.66" r="7.25" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="275.19" cy="89.99" r="7.08" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <circle cx="306.23" cy="50.91" r="8.00" fill="#1f77b4" stroke="#ffffff" stroke-width="1.0" class="bin-point" />
+  <text x="180.00" y="22.00" fill="#1a1a1a" font-size="14" text-anchor="middle" font-family="sans-serif">Win-probability reliability (held-out 2025)</text>
+  <text x="180.00" y="354.00" fill="#8a8a8a" font-size="12" text-anchor="middle" font-family="sans-serif">predicted probability</text>
+  <text x="14" y="180.00" fill="#8a8a8a" font-size="12" text-anchor="middle" font-family="sans-serif" transform="rotate(-90 14 180.00)">empirical rate</text>
+</svg>

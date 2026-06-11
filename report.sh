@@ -12,3 +12,4 @@ if [[ ! -f data/winprob/challenger_metrics.json ]]; then
 fi
 
 .venv/bin/python -m winprob.report
+.venv/bin/python -m winprob.figures
