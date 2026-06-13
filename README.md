@@ -7,17 +7,20 @@ held-out seasons and betting-market lines.
 
 ## Status
 
-**Sprint 3, Phase 4 — gradient-boosted challenger (complete).** The validated
-RAPM feeds a leakage-safe possession-boundary mart (1,273,794 states / 6,430
-games) with forward-chaining train/validation/test seasons, and an intercept-free
-L2 logistic win-probability model fits on 2022–24 and is scored on the untouched
-2025 test season. A nested A→E ablation showed prior-season *team* strength adds
-held-out signal (Brier −0.005) while the *specific on-court five* adds nothing
-beyond it. Phase 4 then races a hand-rolled gradient-boosted challenger against
-the additive logistic on the *identical* features: given free rein over
-interactions, it does **not** beat the logistic out of sample (Brier 0.15713 vs
-0.15619, difference CI straddles zero). The signal is confirmed ~linear — the
-logistic is retained, and that null is the result.
+**Sprint 3 complete — win probability, RAPM ablation, nonlinear challenger, and
+market comparison.** The validated RAPM feeds a leakage-safe possession-boundary
+mart (1,273,794 states / 6,430 games) with forward-chaining
+train/validation/test seasons, and an intercept-free L2 logistic win-probability
+model fits on 2022–24 and is scored on the untouched 2025 test season. A nested
+A→E ablation showed prior-season *team* strength adds held-out signal (Brier
+−0.005) while the *specific on-court five* adds nothing beyond it. A hand-rolled
+gradient-boosted challenger, given free rein over interactions on the *identical*
+features, does **not** beat the additive logistic out of sample (Brier 0.15713 vs
+0.15619, CI straddles zero) — the signal is confirmed ~linear. Against the market,
+the model's pre-game probabilities are well-calibrated and correlate 0.73 with MGM
+closing lines, but the market is sharper, as expected. Every published number
+traces to one pinned corpus/feature/quality/split/model tuple and reproduces from
+the on-disk artifacts.
 
 ## Results
 
@@ -257,6 +260,74 @@ the RAPM question).
 
 _Regenerate: `./challenger.sh` (selects + fits `winprob.gbm`, then races the
 tier-E logistic and gates via `winprob.challenger`)._
+
+### Calibration and trajectories (Phase 5)
+
+Calibration on the held-out 2025 season is tight: every reliability bin sits within
+0.031 of its empirical rate, hugging the perfect-calibration diagonal. The
+probability trajectories show the model tracking three representative games — a
+close final that dipped to 0.06 before the home team held on, an away blowout to
+0.00, and a lead-change swinging 0.43↔1.00.
+
+![Held-out 2025 reliability diagram](figures/reliability.svg)
+
+![Win-probability trajectories for three 2025 games](figures/trajectories.svg)
+
+Held-out coverage is one untouched season by the forward-chaining design (2025);
+the Phase-3 rolling folds add a second held-out fold (2024) for the RAPM question.
+Figures are hand-rolled SVG (no plotting dependency) and regenerate with
+`./report.sh`.
+
+### Model vs. market (Phase 5)
+
+Does the model's *pre-game* win probability hold up against the betting market? The
+only honest alignment for a pre-tip closing line is the model's **opening-state**
+probability, and only the rating-aware tier-E model varies by matchup before tip
+(the sparse score+time model predicts the base rate for every game). The benchmark
+is **MGM vig-free closing moneylines** from a public dataset, covering **769 of the
+1,258 test games** — the 2025-26 regular season through the All-Star break (no
+playoffs). Comparison on those games (lower Brier is better):
+
+| Pre-game forecast | Brier | Log loss | Calibration (intercept / slope) |
+|---|---:|---:|---|
+| Tier-E model | 0.22990 | 0.65136 | −0.004 / 0.864 |
+| **Market (MGM, vig-free)** | **0.21466** | **0.61787** | −0.016 / 0.889 |
+| Market − model (paired, game-clustered 95% CI) | **−0.01518 [−0.02419, −0.00626]** | −0.03334 [−0.05326, −0.01344] | — |
+
+**The finding.** The **market is sharper** — the paired difference clears zero on
+both Brier and log loss — which is exactly what should happen: the market prices
+injuries, rest, travel, and matchup edges that a season-pooled RAPM cannot see. But
+the model is **honest about what it knows**: its pre-game probabilities are
+well-calibrated (intercept −0.004) and **correlate 0.73** with the closing line,
+and both beat the base-rate Brier (0.2481) — the model captures real pre-game
+signal, the market simply captures more. The gate here is the model's own pre-game
+calibration (it passes); beating the market is not the bar, and a sharper market is
+reported, not treated as a failure.
+
+**Honest caveats.** (1) Coverage stops at the All-Star break (the only free,
+ungated 2025-26 moneyline source), so this is a regular-season, no-playoff slice.
+(2) The lines are single-book (MGM) closing moneylines, attributed to their source
+and pinned by sha256 in the audit; they are not a multi-book consensus. (3)
+Pre-game Brier (~0.21–0.23) is far higher than in-game Brier (0.156) because at
+tip-off there is no score to condition on — the two are not comparable.
+
+_Regenerate: `./market.sh` (fits tier E, joins the odds, and gates via
+`winprob.market`; see the script header for the one-line odds download)._
+
+### Reproducibility
+
+Every published result traces to one immutable provenance tuple, and the final gate
+re-hashes the on-disk mart and model to prove the artifacts each number was computed
+against are the ones still present:
+
+```
+corpus f3494b21 · split eb69be5d · feature-schema 80d9e8f0 · model 30a4972b · parquet 685233a9
+```
+
+`./report.sh` walks the mart→model→ablation→challenger chain, asserts one consistent
+tuple, and emits `results.json` with an `all_results_reproduce` boolean (all ten
+checks pass). Tampering any single link — a downstream hash, a quality gate, an
+on-disk file — flips the gate and pinpoints the break.
 
 ## Pipeline
 
