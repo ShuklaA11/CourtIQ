@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy import sparse
-from scipy.linalg import cho_factor, cho_solve
+from scipy.linalg import cho_factor
 
 from rapm.bayes import (
     Z90,

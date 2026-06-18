@@ -372,7 +372,7 @@ def _synthetic_cv_design(seed: int = 0):
     smallest lambda. Games are whole-fold so grouped CV is leakage-free.
     """
     rng = np.random.default_rng(seed)
-    n_per_fold, p = 60, 4
+    p = 4
     Xrows, y, fold, game_id, offense_is_home = [], [], [], [], []
     beta_true = np.array([2.0, -1.0, 3.0, 0.5])
     for f in (0, 1):

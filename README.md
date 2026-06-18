@@ -7,8 +7,18 @@ held-out seasons and betting-market lines.
 
 ## Status
 
-**Sprint 3 complete — win probability, RAPM ablation, nonlinear challenger, and
-market comparison.** The validated RAPM feeds a leakage-safe possession-boundary
+**Sprint 4 complete — the pre-game gap, decomposed.** Building on Sprint 3, a
+game-grain P0→P3 pre-game ladder (base rate → prior-season strength →
+current-season form → rest/schedule) asks how much of the tier-E-to-market Brier
+gap the box score can close *before tip-off*. Current-season form is the load —
+it beats prior strength out of sample (paired Brier −0.024, CI [−0.029, −0.019]) —
+while rest/schedule adds nothing. On the 769 covered games the ladder closes
+**+49.6%** of the tier-E→market gap (CI [+1.5%, +86.2%]) and stays calibrated
+pre-game; the residual half is the market's injury/rest-news/line-movement edge
+the box score cannot see. Beating the market is reported, never gated.
+
+**Sprint 3 — win probability, RAPM ablation, nonlinear challenger, and market
+comparison.** The validated RAPM feeds a leakage-safe possession-boundary
 mart (1,273,794 states / 6,430 games) with forward-chaining
 train/validation/test seasons, and an intercept-free L2 logistic win-probability
 model fits on 2022–24 and is scored on the untouched 2025 test season. A nested
@@ -313,6 +323,62 @@ tip-off there is no score to condition on — the two are not comparable.
 
 _Regenerate: `./market.sh` (fits tier E, joins the odds, and gates via
 `winprob.market`; see the script header for the one-line odds download)._
+
+### Sprint 4 — closing the pre-game gap
+
+Sprint 3 showed the market is sharper pre-game; Sprint 4 asks **how much of that
+gap a box score can actually close before tip-off**, and which signal does the
+work. A game-grain logistic ladder adds one pre-game idea at a time, each tier
+strictly nesting in the next, refit leakage-safe on 2022–24 and scored on the
+untouched 2025 test season:
+
+| Tier | Adds | Brier | ΔBrier vs previous (game-clustered 95% CI) |
+|---|---|---:|---|
+| P0 | base rate + home court | 0.24719 | — |
+| P1 | + prior-season strength | 0.23296 | −0.01405 [−0.02280, −0.00546] |
+| P2 | + current-season form (EB-shrunk) | 0.20922 | **−0.02374 [−0.02902, −0.01865]** |
+| P3 | + rest / schedule | 0.20981 | +0.00063 [−0.00135, +0.00270] |
+
+**Current-season form is the load-bearing signal** — its improvement over prior
+strength clears the bootstrap by a wide margin (CI entirely below zero) — while
+**rest/schedule adds nothing** (its CI straddles zero). The market comparison is
+restricted to the **769 games with a closing line**, where all three forecasts are
+scored on the *same* sample (P0–P3 above are on all 1,258 test games):
+
+| Pre-game forecast (769 covered games) | Brier |
+|---|---:|
+| Tier-E possession baseline | 0.22990 |
+| P3 pre-game ladder | 0.22234 |
+| **Market (MGM, vig-free)** | **0.21466** |
+
+**Fraction of the gap closed.** P3 closes **+49.6%** of the tier-E→market Brier gap
+(game-clustered 95% CI **[+1.5%, +86.2%]**): of the 0.01524 baseline gap, 0.00768
+remains. The wide CI is honest — it is a difference-of-differences on 769 games —
+but its lower bound clears zero, so the closure is real, not noise.
+
+![Covered-game Brier: closing the pre-game gap](figures/pregame_gap.svg)
+
+**P3 stays calibrated pre-game.** The top tier's held-out calibration is intercept
+**−0.004**, slope **0.957** — probabilities you can take at face value, not merely
+ranked correctly (this is the gate; it passes). Regressing the outcome on both the
+market line and P3 leaves P3 with a coefficient of −0.017 (CI [−0.418, +0.333]):
+**P3 adds no signal orthogonal to the market** — it closes the gap by re-deriving
+what the line already prices, not by knowing something the market misses.
+
+**Honest caveats.** (1) The **residual half of the gap is the market's edge the box
+score cannot see** — injuries, rest-day news, and closing line movement are priced
+into the moneyline but absent from a pre-tip feature vector. Closing ~half is the
+ceiling for this information set, not a failure. (2) **Small n widens everything**:
+769 covered games (regular season through the All-Star break, single-book MGM
+closing lines) is why the gap-closed CI spans [+1.5%, +86.2%]; a fuller,
+multi-book, playoff-inclusive corpus would tighten it. (3) Beating the market is
+**reported, never gated** — a "the market is still sharper" result is a valid
+finding here, exactly as in Sprint 3.
+
+_Regenerate: `./pregame.sh` (fits the P0–P3 ladder, measures the gap close via
+`winprob.pregame`, and renders the figure via `winprob.pregame_figure`; exits
+non-zero only on a structural gate failure). All numbers above trace to
+`data/winprob/pregame_metrics.json`, pinned by sha256 in `pregame_audit.json`._
 
 ### Reproducibility
 
