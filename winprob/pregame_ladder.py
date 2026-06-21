@@ -46,7 +46,15 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from winprob import ablation, evaluate, features, model, pregame, pregame_features
+from winprob import (
+    ablation,
+    evaluate,
+    features,
+    model,
+    pregame,
+    pregame_availability,
+    pregame_features,
+)
 
 TARGET_COLUMN = model.TARGET_COLUMN
 
@@ -82,10 +90,17 @@ TIER_ADDS: dict[str, str] = {
     "P3": "rest / schedule",
 }
 
+# The availability-adjusted strength columns a P4 tier (``winprob.pregame_injury``)
+# layers on top of P3. Registered here so the shared fitter helpers below recognize
+# them as continuous ladder columns; P0..P3 never reference these names, so their
+# design matrices and scaling are byte-for-byte unchanged by this registration.
+AVAILABILITY_FEATURES: tuple[str, ...] = pregame_availability.AVAILABILITY_FEATURE_COLUMNS
+
 # Continuous columns are the only ones mean/std standardized; the intercept and the
-# back-to-back indicators pass through the scaling as an identity.
+# back-to-back indicators pass through the scaling as an identity. The availability
+# strengths and injury hits are continuous, so they join the standardized set.
 LADDER_CONTINUOUS_FEATURES: frozenset[str] = frozenset(
-    {PRIOR_STRENGTH_DIFF, FORM_STRENGTH_DIFF, REST_DIFF}
+    {PRIOR_STRENGTH_DIFF, FORM_STRENGTH_DIFF, REST_DIFF, *AVAILABILITY_FEATURES}
 )
 
 # Empirical-Bayes shrinkage candidates for the current-season form blend, chosen
@@ -132,7 +147,8 @@ def _raw_ladder_columns(frame: pd.DataFrame) -> dict[str, np.ndarray]:
     """Raw (pre-standardization) ladder columns keyed by feature name."""
     n = len(frame)
     cols: dict[str, np.ndarray] = {"intercept": features.constant_column(n)}
-    for name in (PRIOR_STRENGTH_DIFF, FORM_STRENGTH_DIFF, REST_DIFF, HOME_B2B, AWAY_B2B):
+    scan = (PRIOR_STRENGTH_DIFF, FORM_STRENGTH_DIFF, REST_DIFF, HOME_B2B, AWAY_B2B) + AVAILABILITY_FEATURES
+    for name in scan:
         if name in frame.columns:
             cols[name] = np.asarray(frame[name].to_numpy(), dtype=np.float64)
     return cols

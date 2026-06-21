@@ -7,6 +7,18 @@ held-out seasons and betting-market lines.
 
 ## Status
 
+**Sprint 5 complete — the injury edge, an honest null.** Adds a leakage-safe
+pre-tip availability signal — who is inactive, read from the official box-score
+inactive list — as tier P4: prior-season RAPM team strength recomputed over the
+*available* roster. It does **not** beat current-season form out of sample
+(P4−P3 held-out Brier −0.0005, CI [−0.0017, +0.0006] straddles zero). The reason
+is the interesting part: current-season form already *implicitly* prices injuries
+— a team missing its star has been playing worse, and the expanding-window form
+captures that — so knowing precisely *who* is out via RAPM adds nothing beyond it,
+echoing Sprint 3's in-game lineup-RAPM null. P4 stays calibrated and closes
+**+50.7%** of the tier-E→market gap versus form's +49.6% (a +1.1% sliver, within
+noise). A null, honestly reported and gated.
+
 **Sprint 4 complete — the pre-game gap, decomposed.** Building on Sprint 3, a
 game-grain P0→P3 pre-game ladder (base rate → prior-season strength →
 current-season form → rest/schedule) asks how much of the tier-E-to-market Brier
@@ -379,6 +391,65 @@ _Regenerate: `./pregame.sh` (fits the P0–P3 ladder, measures the gap close via
 `winprob.pregame`, and renders the figure via `winprob.pregame_figure`; exits
 non-zero only on a structural gate failure). All numbers above trace to
 `data/winprob/pregame_metrics.json`, pinned by sha256 in `pregame_audit.json`._
+
+### Sprint 5 — the injury edge
+
+Sprint 4 attributed the *residual* half of the pre-game gap to the market's
+injury/rest-news edge. Sprint 5 tests that directly: it reads each game's **pre-tip
+inactive list** from the V3 box score — a signal finalized before tip, so it is
+outcome-safe — and turns it into tier **P4**, where prior-season RAPM team strength
+is recomputed over only the *available* roster (the headline feature is the
+**injury-hit delta**: rotation strength minus available strength, i.e. how much
+RAPM is sitting out tonight). The availability layer covers all 6,430 games;
+**2.63%** of player-rows are flagged unavailable, injury/illness the modal reason.
+Fit leakage-safe on 2022–24, scored on the untouched 2025 test season. Reproduce
+with `./injury.sh`.
+
+| Tier | Adds | Brier (1,258 test games) | ΔBrier vs previous (game-clustered 95% CI) |
+|---|---|---:|---|
+| P3 | current-season form + rest (Sprint 4) | 0.20981 | — |
+| P4 | + pre-tip availability (RAPM over available roster) | 0.20930 | −0.00051 [−0.00167, +0.00060] |
+
+**The finding is a null — and it is the result.** Adding *who is actually available
+at tip* does **not** beat current-season form out of sample: the P4−P3 paired
+interval straddles zero, so `gate_availability_beats_form` fails, correctly. Why
+form already suffices: a team that has been missing its star **has been playing
+worse**, and the expanding-window current-season form (P2) already absorbs that —
+so the explicit RAPM-weighted availability signal is largely redundant with form.
+This is the pre-game echo of Sprint 3's in-game result that the specific on-court
+five adds nothing beyond team strength.
+
+On the 769 market-covered games, P4 and P3 land almost on top of each other:
+
+| Pre-game forecast (769 covered games) | Brier |
+|---|---:|
+| Tier-E possession baseline | 0.22990 |
+| P3 form ladder | 0.22234 |
+| P4 + availability | 0.22218 |
+| **Market (MGM, vig-free)** | **0.21466** |
+
+P4 closes **+50.7%** of the tier-E→market gap (CI [+2.5%, +88.2%]) versus form's
++49.6% — a **+1.1%** sliver well inside the noise. P4 stays calibrated pre-game
+(intercept +0.006, slope 0.969), correlates 0.89 with the closing line, and adds
+no signal orthogonal to the market.
+
+![Covered-game Brier: the injury edge does not beat form](figures/injury_gap.svg)
+
+**Honest caveats.** (1) The inactive list is outcome-safe and knowable at tip, but
+it is **not a probable/questionable injury report**: it carries no minutes-restriction,
+game-time-decision, or load-management-news signal, all of which the market prices
+and a resolved box-score inactive list cannot. (2) A player counts as *available*
+if they dressed (minutes > 0) or the note is "Coach's Decision" — the conservative
+choice that cannot leak blowout/garbage-time information; only explicit
+injury/illness/NWT/suspension/rest/personal markers flag a player out. (3) The null
+is a real, gated finding: the structural gates (predictions in (0, 1), test season
+untouched) and pre-game calibration all pass, so `./injury.sh` exits 0 on the
+honest null.
+
+_Regenerate: `./injury.sh` (builds the availability layer via `winprob.availability`,
+fits P4 + re-measures the gap via `winprob.pregame_injury_report`, renders the figure
+via `winprob.injury_figure`). All numbers above trace to
+`data/winprob/injury_metrics.json`, pinned by sha256 in `injury_audit.json`._
 
 ### Reproducibility
 
