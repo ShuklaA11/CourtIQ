@@ -7,6 +7,18 @@ held-out seasons and betting-market lines.
 
 ## Status
 
+**Sprint 6 complete — model vs a prediction market, on a fuller sample.** Adds a
+second, structurally-different sharp benchmark: **Polymarket** vig-free closing
+probabilities, pulled leakage-safe (last pre-tip tick per token) and pinned by
+sha256. Coverage jumps to **1,255 of 1,258 test games (99.8%), including the
+playoffs** — vs the sportsbook's 769 regular-season-only games. The Sprint-4 story
+holds and tightens: the prediction market is **sharper** pre-game (paired Brier
+−0.013, CI [−0.018, −0.008]), the P3 model stays **calibrated** (intercept −0.008,
+slope 0.956) and correlates **0.863** with the market, and P3 closes **+53.1%** of
+the tier-E→market Brier gap — with the CI narrowing from Sprint 4's [+1.5%, +86.2%]
+to **[+37.4%, +68.5%]** on the larger, playoff-inclusive sample. Beating the market
+is reported, never gated.
+
 **Sprint 5 complete — the injury edge, an honest null.** Adds a leakage-safe
 pre-tip availability signal — who is inactive, read from the official box-score
 inactive list — as tier P4: prior-season RAPM team strength recomputed over the
@@ -450,6 +462,57 @@ _Regenerate: `./injury.sh` (builds the availability layer via `winprob.availabil
 fits P4 + re-measures the gap via `winprob.pregame_injury_report`, renders the figure
 via `winprob.injury_figure`). All numbers above trace to
 `data/winprob/injury_metrics.json`, pinned by sha256 in `injury_audit.json`._
+
+### Sprint 6 — model vs the prediction market
+
+Sprint 3-5 benchmarked the model against a single-book **sportsbook** (MGM vig-free
+closing moneylines) that covered only **769 of the 1,258 test games** and stopped at
+the All-Star break. Sprint 6 adds a second, structurally-different sharp benchmark —
+**Polymarket**, a real-money **prediction market** — and retests the Sprint-4
+gap-close on a fuller, firmer sample: **1,255 of 1,258 test games (99.8%)**,
+**including the playoffs**. This is "model vs a prediction market," complementary to
+"model vs a sportsbook"; the expected result still mirrors Sprint 4 (market sharper,
+model calibrated), and beating it is reported, never gated.
+
+The benchmark is built leakage-safe from a **frozen snapshot** (`polymarket_closing.parquet`,
+pinned by sha256): for each test game the pull constructs the Polymarket event slug,
+reads both outcome tokens' `prices-history`, and takes each token's **last tick
+strictly before tip-off** (`gameStartTime`) — never a post-tip tick, and only if
+within 24h of tip. The vig-free home probability is `p_home / (p_home + p_away)`.
+Comparison on the covered games (lower Brier is better):
+
+| Pre-game forecast (1,255 covered games) | Brier | Log loss | Calibration (intercept / slope) |
+|---|---:|---:|---|
+| P3 pre-game model | 0.20987 | 0.60805 | −0.008 / 0.956 |
+| **Polymarket (vig-free)** | **0.19692** | **0.57497** | −0.009 / 1.008 |
+| Polymarket − P3 (paired, game-clustered 95% CI) | **−0.01292 [−0.01832, −0.00765]** | −0.03304 [−0.04546, −0.02089] | — |
+
+**The finding.** The **prediction market is sharper** pre-game — the paired
+difference clears zero on both Brier and log loss — exactly as against the sportsbook: Polymarket prices
+injuries, rest, and line-movement a season-pooled model cannot. But the model stays
+**honest about what it knows**: P3's pre-game probabilities are well-calibrated
+(intercept −0.008) and **correlate 0.863** with the market.
+
+**Fraction of the gap closed (fuller sample).** Re-running the Sprint-4 measure
+against Polymarket, P3 closes **+53.1%** of the tier-E→market Brier gap
+(game-clustered 95% CI **[+37.4%, +68.5%]**): of the 0.02761 tier-E baseline
+gap, 0.01295 remains. The playoff-inclusive sample of 1,255 games — 486 more
+than the MGM slice — tightens the interval dramatically: Sprint 4's [+1.5%, +86.2%] on 769 games narrows to [+37.4%, +68.5%] here, the closure now firmly bounded away from zero.
+
+**Honest caveats.** (1) A prediction market is **not a sportsbook**: Polymarket
+prices are real-money order-book mid-points, not a book's vig-adjusted line, so this
+is a complementary benchmark, not a replacement. (2) **Thin markets**: 155 of the
+covered games traded under \$50k of moneyline volume and are flagged in the snapshot;
+the median game trades ~\$1.4M. (3) The snapshot is **pinned by sha256** in
+`polymarket_audit.json`, and the **pre-tip leakage rule** (last tick with
+`t ≤ gameStartTime`, within 24h) is enforced at pull time and re-checked as a
+structural gate. (4) Beating the market is **reported, never gated** — a sharper
+market is a valid finding, exactly as in Sprint 3-4.
+
+_Regenerate: `./polymarket.sh` (pulls the snapshot via `winprob.polymarket_pull` if
+absent, then compares via `winprob.polymarket_compare`; exits non-zero only on a
+structural gate failure). All numbers above trace to
+`data/winprob/polymarket_metrics.json`, pinned by sha256 in `polymarket_audit.json`._
 
 ### Reproducibility
 
