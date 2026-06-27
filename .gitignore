@@ -6,6 +6,10 @@ PLAN.md
 planning.md
 plans/
 
+# --- Agent tooling / scratch (session-local, never committed) ---
+.claude/
+.codex/
+
 # --- Python ---
 .venv/
 __pycache__/
