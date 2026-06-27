@@ -17,6 +17,7 @@
 # It exits NON-ZERO only on a STRUCTURAL gate failure (a prediction outside (0, 1), a
 # non-pre-tip price, or a non-test game). Beating the prediction market is REPORTED,
 # never a hard failure — the market is expected to be sharper, exactly as in Sprint 3-4.
+# Finally `winprob.polymarket_figure` renders the covered-game gap SVG to figures/.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -36,3 +37,4 @@ if [[ ! -f data/winprob/polymarket_closing.parquet ]]; then
 fi
 
 .venv/bin/python -m winprob.polymarket_compare
+.venv/bin/python -m winprob.polymarket_figure

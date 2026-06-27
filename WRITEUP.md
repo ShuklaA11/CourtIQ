@@ -505,6 +505,8 @@ against Polymarket, P3 closes **+53.1%** of the tier-E→market Brier gap
 gap, 0.01295 remains. The playoff-inclusive sample of 1,255 games — 486 more
 than the MGM slice — tightens the interval dramatically: Sprint 4's [+1.5%, +86.2%] on 769 games narrows to [+37.4%, +68.5%] here, the closure now firmly bounded away from zero.
 
+![Covered-game Brier: closing the pre-game gap to the prediction market](figures/polymarket_gap.svg)
+
 **Honest caveats.** (1) A prediction market is **not a sportsbook**: Polymarket
 prices are real-money order-book mid-points, not a book's vig-adjusted line, so this
 is a complementary benchmark, not a replacement. (2) **Thin markets**: 155 of the
@@ -516,8 +518,9 @@ structural gate. (4) Beating the market is **reported, never gated** — a sharp
 market is a valid finding, exactly as in Sprint 3-4.
 
 _Regenerate: `./polymarket.sh` (pulls the snapshot via `winprob.polymarket_pull` if
-absent, then compares via `winprob.polymarket_compare`; exits non-zero only on a
-structural gate failure). All numbers above trace to
+absent, compares via `winprob.polymarket_compare`, and renders the figure via
+`winprob.polymarket_figure`; exits non-zero only on a structural gate failure). All
+numbers above trace to
 `data/winprob/polymarket_metrics.json`, pinned by sha256 in `polymarket_audit.json`._
 
 ### Reproducibility
